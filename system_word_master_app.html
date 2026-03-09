@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>システム英単語 学習管理アプリ</title>
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#fff; --line:#d9e0ea; --text:#1f2937; --muted:#6b7280;
+      --primary:#2563eb; --good:#0f766e; --bad:#dc2626; --warn:#d97706; --shadow:0 8px 24px rgba(15,23,42,.08);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Meiryo,sans-serif;background:var(--bg);color:var(--text)}
+    .hidden{display:none!important}
+    .app{max-width:1400px;margin:0 auto;padding:16px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:16px}
+    h1,h2,h3{margin:0 0 12px}
+    h1{font-size:1.5rem} h2{font-size:1.2rem} h3{font-size:1rem}
+    .grid{display:grid;gap:16px}
+    .grid-2{grid-template-columns:2fr 1fr}
+    .grid-3{grid-template-columns:repeat(3,1fr)}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+    .tab{padding:10px 14px;border-radius:999px;border:1px solid var(--line);background:#eef2ff;cursor:pointer;font-weight:600}
+    .tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    label{font-size:.92rem;font-weight:600;display:block;margin-bottom:6px}
+    input,textarea,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:12px;font:inherit;background:#fff}
+    textarea{min-height:120px;resize:vertical}
+    button{padding:10px 14px;border:0;border-radius:12px;background:var(--primary);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+    button.secondary{background:#e5e7eb;color:#2563eb}
+    button.good{background:var(--good)} button.bad{background:var(--bad)} button.warn{background:var(--warn)}
+    button.small{padding:7px 10px;font-size:.92rem;border-radius:10px}
+    .muted{color:var(--muted)} .pill{display:inline-block;padding:4px 10px;border-radius:999px;background:#eef2ff;color:#1d4ed8;font-size:.84rem;font-weight:700}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .stat{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:14px}
+    .stat .num{font-size:1.5rem;font-weight:800}
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    thead th{font-size:.9rem;color:#374151;text-align:left;padding:8px 10px}
+    tbody tr{background:#fff;border:1px solid var(--line)}
+    tbody td{padding:10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+    tbody td:first-child{border-left:1px solid var(--line);border-top-left-radius:12px;border-bottom-left-radius:12px}
+    tbody td:last-child{border-right:1px solid var(--line);border-top-right-radius:12px;border-bottom-right-radius:12px}
+    .status{font-weight:800;font-size:1.15rem}
+    .status.good{color:var(--good)} .status.bad{color:var(--bad)} .status.none{color:#9ca3af}
+    .table-wrap{overflow:auto}
+    .search-row{display:grid;grid-template-columns:1.5fr .7fr .8fr .8fr auto auto auto auto;gap:8px;align-items:end}
+    .chart{height:260px;display:flex;align-items:flex-end;gap:8px;padding:12px;border:1px solid var(--line);border-radius:14px;background:#fff}
+    .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+    .bar{width:100%;max-width:48px;background:linear-gradient(180deg,#60a5fa,#2563eb);border-radius:10px 10px 0 0;min-height:2px}
+    .bar-label{font-size:.78rem;margin-top:8px;text-align:center;word-break:break-word}
+    .bar-value{font-size:.76rem;color:var(--muted);margin-bottom:4px}
+    .range-bar{height:26px;background:#e5e7eb;border-radius:999px;position:relative;overflow:hidden}
+    .range-fill{height:100%;background:linear-gradient(90deg,#22c55e,#3b82f6);border-radius:999px}
+    .review-item,.rank-item,.history-item{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:8px}
+    .login-wrap{min-height:100vh;display:grid;place-items:center;padding:20px}
+    .login-card{width:min(480px,100%)}
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .note{font-size:.88rem;color:var(--muted);line-height:1.5}
+    .sticky-top{position:sticky;top:0;background:rgba(245,247,251,.95);backdrop-filter:blur(8px);z-index:5;padding-bottom:8px}
+    @media (max-width: 980px){
+      .grid-2,.grid-3,.stats,.two,.search-row{grid-template-columns:1fr}
+      .app{padding:10px}
+      .card{padding:12px}
+      table,thead,tbody,tr,td,th{display:block}
+      thead{display:none}
+      tbody tr{margin-bottom:12px;border:none;background:transparent}
+      tbody td{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border-left:1px solid var(--line)!important;border-right:1px solid var(--line)!important;border-radius:0!important}
+      tbody td:first-child{border-top-left-radius:12px!important;border-top-right-radius:12px!important}
+      tbody td:last-child{border-bottom-left-radius:12px!important;border-bottom-right-radius:12px!important}
+      tbody td::before{content:attr(data-label);font-weight:700;color:#374151;min-width:96px}
+    }
+  </style>
+</head>
+<body>
+<div id="loginView" class="login-wrap">
+  <div class="card login-card">
+    <h1>システム英単語 学習管理アプリ</h1>
+    <p class="note">このログインはブラウザ内保存です。同じ端末・同じブラウザでは続きから使えます。別端末との自動同期はしません。</p>
+    <div class="grid" style="gap:12px;margin-top:12px;">
+      <div>
+        <label>ユーザー名</label>
+        <input id="authUsername" placeholder="例: mizu" />
+      </div>
+      <div>
+        <label>パスワード</label>
+        <input id="authPassword" type="password" placeholder="パスワード" />
+      </div>
+      <div class="row">
+        <button id="registerBtn">アカウント作成</button>
+        <button id="loginBtn" class="good">ログイン</button>
+      </div>
+      <div id="authMsg" class="note"></div>
+    </div>
+  </div>
+</div>
+
+<div id="appView" class="hidden">
+  <div class="app">
+    <div class="sticky-top">
+      <div class="row" style="justify-content:space-between;align-items:center;padding-top:6px;">
+        <div>
+          <h1>システム英単語 学習管理アプリ</h1>
+          <div class="note">ログイン中: <span id="currentUserLabel"></span></div>
+        </div>
+        <div class="row">
+          <span class="pill" id="streakLabel">連続学習 0日</span>
+          <button id="logoutBtn" class="secondary">ログアウト</button>
+        </div>
+      </div>
+      <div class="tabs" id="tabs"></div>
+    </div>
+
+    <div id="page-dashboard" class="page"></div>
+    <div id="page-words" class="page hidden"></div>
+    <div id="page-review" class="page hidden"></div>
+    <div id="page-today" class="page hidden"></div>
+    <div id="page-history" class="page hidden"></div>
+    <div id="page-settings" class="page hidden"></div>
+  </div>
+</div>
+
+<script>
+const MAX_NO = 2027;
+const STATUS_UNSEEN = '＿';
+const STORAGE_KEY = 'system_word_master_app_v1';
+const TABS = [
+  ['dashboard','ホーム'],['words','単語一覧'],['review','復習'],['today','今日の学習'],['history','履歴・グラフ'],['settings','設定']
+];
+
+function loadStore(){
+  try{return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {users:{}, session:null};}
+  catch(e){return {users:{}, session:null};}
+}
+function saveStore(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); }
+function todayStr(d=new Date()){
+  const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function formatDateTime(s){ if(!s) return '-'; const d=new Date(s); if(isNaN(d)) return s; return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+function daysBetween(a,b){ const da=new Date(a), db=new Date(b); da.setHours(0,0,0,0); db.setHours(0,0,0,0); return Math.round((db-da)/86400000); }
+function escapeHtml(str=''){ return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function hashPassword(s){ let h=0; for(let i=0;i<s.length;i++) h=(h*31 + s.charCodeAt(i))>>>0; return String(h); }
+function clamp(n,min,max){ return Math.min(max, Math.max(min, n)); }
+
+function makeDefaultWords(){
+  const words = {};
+  for(let i=1;i<=MAX_NO;i++) words[i] = {number:i, word:'', status:STATUS_UNSEEN, mistakes:0, lastMistake:'', lastReview:'', lastCorrect:'', seen:false, reviewHistory:[]};
+  return words;
+}
+function makeUser(username, passHash){
+  return {
+    username, passHash,
+    words: makeDefaultWords(),
+    settings:{dailyGoal:30},
+    todayPlan:{date:todayStr(), start:'', end:'', goal:30},
+    history:[], // {date,start,end,done,correct,wrong,unseen,rangeList:[...]}
+    lastRangeEnd:0,
+    createdAt:new Date().toISOString()
+  };
+}
+
+let store = loadStore();
+let currentUser = null;
+let currentPage = 'dashboard';
+let wordFilterMode = 'all';
+let historyMode = 'week';
+
+function getUser(){ return currentUser ? store.users[currentUser] : null; }
+
+function ensureTodayPlan(){
+  const user = getUser(); if(!user) return;
+  const t = todayStr();
+  if(!user.todayPlan || user.todayPlan.date !== t){
+    const start = clamp((user.lastRangeEnd || 0) + 1, 1, MAX_NO);
+    const goal = Number(user.settings.dailyGoal || 30);
+    const end = clamp(start + goal - 1, 1, MAX_NO);
+    user.todayPlan = {date:t, start, end, goal};
+  }
+}
+
+function updateStreak(){
+  const user = getUser(); if(!user) return 0;
+  const dates = [...new Set(user.history.map(h=>h.date))].sort();
+  let streak = 0; let cursor = new Date();
+  while(true){
+    const t = todayStr(cursor);
+    if(dates.includes(t)){ streak++; cursor.setDate(cursor.getDate()-1); }
+    else {
+      if(streak===0){ cursor.setDate(cursor.getDate()-1); const y=todayStr(cursor); if(dates.includes(y)){ streak++; cursor.setDate(cursor.getDate()-1); continue; } }
+      break;
+    }
+  }
+  document.getElementById('streakLabel').textContent = `連続学習 ${streak}日`;
+  return streak;
+}
+
+function showAuthMessage(msg, ok=false){ const el=document.getElementById('authMsg'); el.textContent=msg; el.style.color=ok?'#0f766e':'#b91c1c'; }
+
+function register(){
+  const u=document.getElementById('authUsername').value.trim();
+  const p=document.getElementById('authPassword').value;
+  if(!u || !p) return showAuthMessage('ユーザー名とパスワードを入力してください。');
+  if(store.users[u]) return showAuthMessage('そのユーザー名は既に使われています。');
+  store.users[u]=makeUser(u, hashPassword(p)); store.session=u; saveStore(); currentUser=u; startApp();
+}
+function login(){
+  const u=document.getElementById('authUsername').value.trim();
+  const p=document.getElementById('authPassword').value;
+  const user=store.users[u];
+  if(!user || user.passHash!==hashPassword(p)) return showAuthMessage('ログインできません。ユーザー名またはパスワードを確認してください。');
+  store.session=u; saveStore(); currentUser=u; startApp();
+}
+function logout(){ store.session=null; saveStore(); currentUser=null; document.getElementById('appView').classList.add('hidden'); document.getElementById('loginView').classList.remove('hidden'); }
+
+function startApp(){
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('appView').classList.remove('hidden');
+  document.getElementById('currentUserLabel').textContent=currentUser;
+  ensureTodayPlan();
+  renderTabs(); renderAll();
+}
+
+function renderTabs(){
+  const el=document.getElementById('tabs');
+  el.innerHTML=TABS.map(([id,label])=>`<button class="tab ${currentPage===id?'active':''}" onclick="switchPage('${id}')">${label}</button>`).join('');
+}
+function switchPage(id){
+  currentPage=id; renderTabs();
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+  document.getElementById('page-'+id).classList.remove('hidden');
+}
+
+function renderAll(){ renderDashboard(); renderWords(); renderReview(); renderToday(); renderHistory(); renderSettings(); updateStreak(); saveStore(); }
+
+function getWordStats(user=getUser()){
+  const arr=Object.values(user.words);
+  const stats={total:MAX_NO, good:0,bad:0,unseen:0,mistakes:0,seenRangeOnly:0};
+  arr.forEach(w=>{
+    if(w.status==='○') stats.good++;
+    else if(w.status==='×') stats.bad++;
+    else stats.unseen++;
+    stats.mistakes += Number(w.mistakes||0);
+    if(w.seen && w.status===STATUS_UNSEEN) stats.seenRangeOnly++;
+  });
+  return stats;
+}
+
+function getTodayHistoryEntry(date=todayStr()){
+  const user=getUser();
+  let entry=user.history.find(h=>h.date===date);
+  if(!entry){
+    entry={date,start:'',end:'',done:0,correct:0,wrong:0,unseen:0,rangeList:[], reviewedWords:[]};
+    user.history.push(entry);
+  }
+  return entry;
+}
+
+function computeForRange(start,end){
+  const user=getUser(); const s=clamp(Number(start)||1,1,MAX_NO); const e=clamp(Number(end)||s,s,MAX_NO);
+  let correct=0,wrong=0,unseen=0,done=e-s+1;
+  for(let i=s;i<=e;i++){
+    const w=user.words[i];
+    if(w.status==='○') correct++; else if(w.status==='×') wrong++; else unseen++;
+  }
+  return {start:s,end:e,done,correct,wrong,unseen};
+}
+
+function updateTodayPlanField(changed){
+  const user=getUser(); ensureTodayPlan(); const p=user.todayPlan;
+  p.goal = clamp(Number(document.getElementById('goalInput').value)||Number(user.settings.dailyGoal)||30,1,MAX_NO);
+  let start = Number(document.getElementById('startInput').value) || clamp((user.lastRangeEnd||0)+1,1,MAX_NO);
+  let end = Number(document.getElementById('endInput').value) || clamp(start + p.goal - 1,1,MAX_NO);
+  if(changed==='goal') end = clamp(start + p.goal - 1,1,MAX_NO);
+  if(changed==='start') end = clamp(start + p.goal - 1,1,MAX_NO);
+  if(changed==='end' && end < start) end = start;
+  p.start=clamp(start,1,MAX_NO); p.end=clamp(end,p.start,MAX_NO); user.settings.dailyGoal=p.goal;
+  saveStore(); renderToday();
+}
+
+function startTodayRange(){
+  const user=getUser(); ensureTodayPlan(); const p=user.todayPlan;
+  const s=clamp(Number(document.getElementById('startInput').value)||1,1,MAX_NO); const e=clamp(Number(document.getElementById('endInput').value)||s,s,MAX_NO);
+  p.start=s; p.end=e; p.goal=clamp(Number(document.getElementById('goalInput').value)||30,1,MAX_NO);
+  for(let i=s;i<=e;i++) user.words[i].seen = true;
+  const entry=getTodayHistoryEntry(p.date);
+  if(!entry.rangeList.some(r=>r.start===s && r.end===e)) entry.rangeList.push({start:s,end:e});
+  user.lastRangeEnd=e;
+  recalcTodayHistory();
+  renderAll();
+}
+
+function recalcTodayHistory(){
+  const user=getUser(); const entry=getTodayHistoryEntry();
+  if(entry.rangeList.length===0){ entry.start=''; entry.end=''; entry.done=0; entry.correct=0; entry.wrong=0; entry.unseen=0; return; }
+  const flat=[]; entry.rangeList.forEach(r=>{for(let i=r.start;i<=r.end;i++) flat.push(i);});
+  const uniq=[...new Set(flat)].sort((a,b)=>a-b);
+  entry.start=uniq[0]; entry.end=uniq[uniq.length-1]; entry.done=uniq.length;
+  entry.correct=0; entry.wrong=0; entry.unseen=0;
+  uniq.forEach(i=>{ const w=user.words[i]; if(w.status==='○') entry.correct++; else if(w.status==='×') entry.wrong++; else entry.unseen++; });
+  entry.reviewedWords=uniq;
+}
+
+function updateWord(number, type, value){
+  const user=getUser(); const w=user.words[number];
+  if(type==='word'){ w.word = value; }
+  if(type==='status'){
+    const prev=w.status; w.status=value; w.seen=true;
+    const now=new Date().toISOString();
+    if(value==='×'){
+      w.mistakes = Number(w.mistakes||0)+1;
+      w.lastMistake = now;
+      w.lastReview = now;
+      w.reviewHistory.push({date:todayStr(), result:'bad'});
+    }
+    if(value==='○'){
+      w.lastCorrect = now;
+      w.lastReview = now;
+      w.reviewHistory.push({date:todayStr(), result:'good'});
+    }
+    // if was × and changed to ○, remembered state is simply updated.
+    const p=getUser().todayPlan||{};
+    const n=Number(number);
+    if(p.start && p.end && n>=p.start && n<=p.end){
+      const entry=getTodayHistoryEntry();
+      if(!entry.rangeList.some(r=>n>=r.start && n<=r.end)) entry.rangeList.push({start:n,end:n});
+      recalcTodayHistory();
+    }
+  }
+  saveStore(); renderAll();
+}
+
+function getFilteredWords(){
+  const user=getUser();
+  const q=(document.getElementById('searchKeyword')?.value || '').trim().toLowerCase();
+  const sNum=Number(document.getElementById('searchFrom')?.value||1);
+  const eNum=Number(document.getElementById('searchTo')?.value||MAX_NO);
+  let list=Object.values(user.words).filter(w=>w.number>=sNum && w.number<=eNum);
+  if(wordFilterMode==='wrong') list=list.filter(w=>w.status==='×');
+  if(wordFilterMode==='review') list=list.filter(w=>getReviewList().some(r=>r.number===w.number));
+  if(wordFilterMode==='unseen') list=list.filter(w=>w.status===STATUS_UNSEEN);
+  if(q) list=list.filter(w=>String(w.number).includes(q) || (w.word||'').toLowerCase().includes(q));
+  return list;
+}
+
+function renderDashboard(){
+  const user=getUser(), stats=getWordStats(user), plan=user.todayPlan, today=getTodayHistoryEntry();
+  const rangePct = today.end ? ((today.end/MAX_NO)*100).toFixed(1) : 0;
+  document.getElementById('page-dashboard').innerHTML = `
+    <div class="grid grid-2">
+      <div class="card">
+        <h2>全体の進み具合</h2>
+        <div class="stats">
+          <div class="stat"><div class="muted">覚えた</div><div class="num">${stats.good}</div></div>
+          <div class="stat"><div class="muted">間違えた</div><div class="num">${stats.bad}</div></div>
+          <div class="stat"><div class="muted">未判定</div><div class="num">${stats.unseen}</div></div>
+          <div class="stat"><div class="muted">総ミス回数</div><div class="num">${stats.mistakes}</div></div>
+        </div>
+        <div style="margin-top:14px">
+          <div class="row" style="justify-content:space-between"><strong>全体進捗</strong><span>${stats.good + stats.bad + stats.seenRangeOnly} / ${MAX_NO}</span></div>
+          <div class="range-bar" style="margin-top:8px"><div class="range-fill" style="width:${((stats.good+stats.bad+stats.seenRangeOnly)/MAX_NO*100).toFixed(1)}%"></div></div>
+        </div>
+        <div style="margin-top:18px">
+          <div class="row" style="justify-content:space-between"><strong>最後にやった範囲</strong><span>${today.start||'-'} 〜 ${today.end||'-'}</span></div>
+          <div class="range-bar" style="margin-top:8px"><div class="range-fill" style="width:${rangePct}%"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>今日のまとめ</h2>
+        <div class="review-item"><strong>目標単語数</strong><div>${plan.goal}</div></div>
+        <div class="review-item"><strong>今日の予定範囲</strong><div>${plan.start||'-'} 〜 ${plan.end||'-'}</div></div>
+        <div class="review-item"><strong>今日やった単語数</strong><div>${today.done}</div></div>
+        <div class="review-item"><strong>今日覚えた単語数</strong><div>${today.correct}</div></div>
+        <div class="review-item"><strong>今日の達成率</strong><div>${plan.goal ? Math.round((today.done / plan.goal) * 100) : 0}%</div></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderWords(){
+  const list=getFilteredWords();
+  document.getElementById('page-words').innerHTML = `
+    <div class="card">
+      <h2>単語一覧</h2>
+      <div class="search-row" style="margin-bottom:12px">
+        <div><label>検索</label><input id="searchKeyword" placeholder="番号・単語で検索" value="${escapeHtml(document.getElementById('searchKeyword')?.value || '')}" oninput="renderWords()"></div>
+        <div><label>開始番号</label><input id="searchFrom" type="number" min="1" max="${MAX_NO}" value="${document.getElementById('searchFrom')?.value || 1}" oninput="renderWords()"></div>
+        <div><label>終了番号</label><input id="searchTo" type="number" min="1" max="${MAX_NO}" value="${document.getElementById('searchTo')?.value || MAX_NO}" oninput="renderWords()"></div>
+        <div><label>表示</label><select onchange="wordFilterMode=this.value; renderWords()"><option value="all" ${wordFilterMode==='all'?'selected':''}>全件</option><option value="wrong" ${wordFilterMode==='wrong'?'selected':''}>×だけ</option><option value="review" ${wordFilterMode==='review'?'selected':''}>復習だけ</option><option value="unseen" ${wordFilterMode==='unseen'?'selected':''}>未判定だけ</option></select></div>
+        <button onclick="bulkMarkTodayRange('○')" class="good">今日の範囲を○</button>
+        <button onclick="bulkMarkTodayRange('×')" class="bad">今日の範囲を×</button>
+        <button onclick="markTodayRangeSeenOnly()" class="warn">今日の範囲を実施済みにする</button>
+        <button onclick="renderWords()" class="secondary">再表示</button>
+      </div>
+      <div class="note" style="margin-bottom:10px">最初は「＿」で表示されます。○×をつけていない、または一度も範囲入力されていない単語は未判定です。単語欄は直接編集できます。</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>番号</th><th>単語</th><th>状態</th><th>ミス</th><th>最後に間違えた日時</th><th>忘却曲線次回</th><th>操作</th></tr></thead>
+          <tbody>
+            ${list.slice(0,300).map(w=>{
+              const nextReview=getNextReviewInfo(w);
+              return `<tr>
+                <td data-label="番号">${w.number}</td>
+                <td data-label="単語"><input value="${escapeHtml(w.word||'')}" onchange="updateWord(${w.number},'word', this.value)"></td>
+                <td data-label="状態"><span class="status ${w.status==='○'?'good':w.status==='×'?'bad':'none'}">${w.status}</span></td>
+                <td data-label="ミス">${w.mistakes||0}</td>
+                <td data-label="最後に間違えた日時">${formatDateTime(w.lastMistake)}</td>
+                <td data-label="忘却曲線次回">${nextReview.label}</td>
+                <td data-label="操作"><div class="row"><button class="small good" onclick="updateWord(${w.number},'status','○')">○</button><button class="small bad" onclick="updateWord(${w.number},'status','×')">×</button><button class="small secondary" onclick="resetWord(${w.number})">リセット</button></div></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="note">表示件数が多すぎると重くなるため、上位300件まで表示しています。検索や範囲指定で絞り込んでください。</div>
+    </div>
+  `;
+}
+
+function resetWord(n){ const user=getUser(); user.words[n]={number:n, word:user.words[n].word||'', status:STATUS_UNSEEN, mistakes:0,lastMistake:'',lastReview:'',lastCorrect:'',seen:false,reviewHistory:[]}; saveStore(); renderAll(); }
+function bulkMarkTodayRange(status){ const user=getUser(); ensureTodayPlan(); const p=user.todayPlan; if(!p.start||!p.end) return; for(let i=p.start;i<=p.end;i++) updateWord(i,'status',status); recalcTodayHistory(); renderAll(); }
+function markTodayRangeSeenOnly(){ const user=getUser(); ensureTodayPlan(); const p=user.todayPlan; if(!p.start||!p.end) return; for(let i=p.start;i<=p.end;i++) user.words[i].seen=true; const entry=getTodayHistoryEntry(); if(!entry.rangeList.some(r=>r.start===p.start && r.end===p.end)) entry.rangeList.push({start:p.start,end:p.end}); recalcTodayHistory(); renderAll(); }
+
+function getNextReviewInfo(w){
+  if(!w.seen && w.status===STATUS_UNSEEN) return {due:false,label:'未学習'};
+  const hist=w.reviewHistory||[];
+  const goodCount=hist.filter(h=>h.result==='good').length;
+  const badCount=hist.filter(h=>h.result==='bad').length;
+  const base = w.lastReview || w.lastMistake || w.lastCorrect;
+  if(!base) return {due:true,label:'今日'};
+  let interval;
+  if(w.status==='×') interval = 1;
+  else {
+    const seq=[1,3,7,14,30];
+    interval = seq[Math.min(goodCount, seq.length-1)];
+    if(badCount>0) interval = Math.max(1, interval-1);
+  }
+  const next = new Date(base); next.setDate(next.getDate()+interval);
+  const today=new Date(); today.setHours(0,0,0,0); next.setHours(0,0,0,0);
+  const diff=Math.round((next-today)/86400000);
+  return {due: diff<=0, label: diff<=0 ? '今日' : `${next.getMonth()+1}/${next.getDate()}` , diff};
+}
+
+function getReviewList(){
+  const user=getUser();
+  const list=[];
+  Object.values(user.words).forEach(w=>{
+    const next=getNextReviewInfo(w);
+    const needByMistake = w.status==='×' || Number(w.mistakes||0)>=2;
+    const recentMistake = w.lastMistake && daysBetween(todayStr(new Date(w.lastMistake)), todayStr()) <= 7;
+    const unseenImportant = w.status===STATUS_UNSEEN && w.seen;
+    const dueByCurve = next.due;
+    if(needByMistake || recentMistake || unseenImportant || dueByCurve){
+      let priority=0;
+      if(w.status==='×') priority += 5;
+      priority += Math.min(4, Number(w.mistakes||0));
+      if(dueByCurve) priority += 4;
+      if(recentMistake) priority += 2;
+      if(unseenImportant) priority += 1;
+      list.push({...w, priority, nextLabel:next.label});
+    }
+  });
+  return list.sort((a,b)=>b.priority-a.priority || b.mistakes-a.mistakes || a.number-b.number);
+}
+
+function renderReview(){
+  const review=getReviewList().slice(0,50);
+  const ranks=[...Object.values(getUser().words)].filter(w=>(w.mistakes||0)>0).sort((a,b)=>b.mistakes-a.mistakes).slice(0,20);
+  document.getElementById('page-review').innerHTML = `
+    <div class="grid grid-2">
+      <div class="card">
+        <h2>忘却曲線 + 苦手判定による復習リスト</h2>
+        <div class="note" style="margin-bottom:10px">基準: ×が付いている / ミス2回以上 / 直近7日以内に間違えた / 忘却曲線の次回復習日が来た / 範囲に入れたが未判定。</div>
+        ${review.length ? review.map(w=>`<div class="review-item"><strong>${w.number}. ${escapeHtml(w.word || '(未入力)')}</strong><div class="muted">状態 ${w.status} / ミス ${w.mistakes} / 次回復習 ${w.nextLabel} / 優先度 ${w.priority}</div><div class="row" style="margin-top:8px"><button class="small good" onclick="updateWord(${w.number},'status','○')">覚えた○</button><button class="small bad" onclick="updateWord(${w.number},'status','×')">まだ×</button></div></div>`).join('') : '<div class="review-item">復習候補はまだありません。</div>'}
+      </div>
+      <div class="grid" style="gap:16px">
+        <div class="card">
+          <h2>間違い回数ランキング</h2>
+          ${ranks.length ? ranks.map((w,i)=>`<div class="rank-item">${i+1}位　<strong>${w.number}. ${escapeHtml(w.word || '(未入力)')}</strong><div class="muted">ミス ${w.mistakes}回</div></div>`).join('') : '<div class="rank-item">まだ記録がありません。</div>'}
+        </div>
+        <div class="card">
+          <h2>未判定だけ</h2>
+          ${Object.values(getUser().words).filter(w=>w.status===STATUS_UNSEEN).slice(0,20).map(w=>`<div class="rank-item">${w.number}. ${escapeHtml(w.word || '(未入力)')}</div>`).join('') || '<div class="rank-item">未判定はありません。</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderToday(){
+  const user=getUser(); ensureTodayPlan(); const p=user.todayPlan; const today=getTodayHistoryEntry();
+  const preview=computeForRange(p.start||1,p.end||Math.min(MAX_NO,(Number(p.start)||1)+(Number(p.goal)||30)-1));
+  document.getElementById('page-today').innerHTML = `
+    <div class="grid grid-2">
+      <div class="card">
+        <h2>今日のテスト設定</h2>
+        <div class="grid grid-3">
+          <div><label>1日の目標単語数</label><input id="goalInput" type="number" min="1" max="${MAX_NO}" value="${p.goal}" oninput="updateTodayPlanField('goal')"></div>
+          <div><label>開始番号</label><input id="startInput" type="number" min="1" max="${MAX_NO}" value="${p.start}" oninput="updateTodayPlanField('start')"></div>
+          <div><label>終了番号</label><input id="endInput" type="number" min="1" max="${MAX_NO}" value="${p.end}" oninput="updateTodayPlanField('end')"></div>
+        </div>
+        <div class="row" style="margin-top:12px"><button onclick="startTodayRange()">今日の範囲を開始</button><button class="secondary" onclick="setNextDefaultRange()">前回の続きに戻す</button></div>
+        <div class="note" style="margin-top:10px">開始番号は最初から「前回やった最後の番号 + 1」、終了番号は「開始番号 + 目標数 - 1」を自動入力します。</div>
+        <div class="stats" style="margin-top:14px">
+          <div class="stat"><div class="muted">予定範囲の単語数</div><div class="num">${preview.done}</div></div>
+          <div class="stat"><div class="muted">予定範囲の○</div><div class="num">${preview.correct}</div></div>
+          <div class="stat"><div class="muted">予定範囲の×</div><div class="num">${preview.wrong}</div></div>
+          <div class="stat"><div class="muted">予定範囲の未判定</div><div class="num">${preview.unseen}</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>今日の結果</h2>
+        <div class="review-item"><strong>今日やった範囲</strong><div>${today.start||'-'} 〜 ${today.end||'-'}</div></div>
+        <div class="review-item"><strong>今日やった単語数</strong><div>${today.done}</div></div>
+        <div class="review-item"><strong>今日覚えた単語数</strong><div>${today.correct}</div></div>
+        <div class="review-item"><strong>今日間違えた単語数</strong><div>${today.wrong}</div></div>
+        <div class="review-item"><strong>今日未判定の単語数</strong><div>${today.unseen}</div></div>
+        <div class="review-item"><strong>目標達成率</strong><div>${p.goal ? Math.round((today.done / p.goal) * 100) : 0}%</div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>今日やった番号の棒グラフ</h2>
+      ${renderRangeChartHtml(today.rangeList)}
+      <div class="note" style="margin-top:10px">その下の履歴ページでは、1週間表示 / 1ヶ月表示を切り替えて、その日何単語やったかを棒グラフで見られます。</div>
+    </div>
+  `;
+}
+function setNextDefaultRange(){ const user=getUser(); const start=clamp((user.lastRangeEnd||0)+1,1,MAX_NO); const goal=Number(user.settings.dailyGoal||30); const end=clamp(start+goal-1,1,MAX_NO); user.todayPlan={date:todayStr(),start,end,goal}; renderToday(); saveStore(); }
+
+function renderRangeChartHtml(rangeList){
+  if(!rangeList || !rangeList.length) return '<div class="review-item">まだ今日の範囲が確定していません。</div>';
+  const merged=[];
+  rangeList.forEach(r=>merged.push({label:`${r.start}-${r.end}`, value:r.end-r.start+1, start:r.start, end:r.end}));
+  const max=Math.max(...merged.map(x=>x.value),1);
+  return `<div class="chart">${merged.map(x=>`<div class="bar-col"><div class="bar-value">${x.value}語</div><div class="bar" style="height:${Math.max(8, x.value/max*180)}px"></div><div class="bar-label">${x.label}</div></div>`).join('')}</div>`;
+}
+
+function getHistoryWindow(mode){
+  const user=getUser(); const days=mode==='week'?7:30; const end=new Date(); const arr=[];
+  for(let i=days-1;i>=0;i--){ const d=new Date(); d.setDate(end.getDate()-i); const ds=todayStr(d); const found=user.history.find(h=>h.date===ds); arr.push({date:ds, done:found?found.done:0, correct:found?found.correct:0}); }
+  return arr;
+}
+function renderHistory(){
+  const arr=getHistoryWindow(historyMode);
+  const max=Math.max(...arr.map(x=>x.done),1);
+  document.getElementById('page-history').innerHTML = `
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h2>学習履歴</h2><div class="row"><button class="${historyMode==='week'?'':'secondary'}" onclick="historyMode='week'; renderHistory()">1週間</button><button class="${historyMode==='month'?'':'secondary'}" onclick="historyMode='month'; renderHistory()">1ヶ月</button></div></div>
+      <div class="chart">
+        ${arr.map(x=>`<div class="bar-col"><div class="bar-value">${x.done}</div><div class="bar" style="height:${Math.max(2, x.done/max*180)}px"></div><div class="bar-label">${x.date.slice(5)}</div></div>`).join('')}
+      </div>
+      <div style="margin-top:12px">
+        ${arr.map(x=>`<div class="history-item"><strong>${x.date}</strong>　やった単語数 ${x.done}　/　覚えた単語数 ${x.correct}</div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function exportJson(){
+  const user=getUser();
+  const blob=new Blob([JSON.stringify(user,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${currentUser}_backup.json`; a.click();
+}
+function importJson(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{ const data=JSON.parse(reader.result); store.users[currentUser]={...getUser(), ...data, username:currentUser, passHash:getUser().passHash}; saveStore(); renderAll(); alert('読み込みました。'); }
+    catch(e){ alert('JSONを読み込めませんでした。'); }
+  };
+  reader.readAsText(file);
+}
+function importWords(){
+  const txt=document.getElementById('bulkWords').value.replace(/\r/g,'').split('\n');
+  const user=getUser();
+  for(let i=1;i<=MAX_NO;i++) user.words[i].word = (txt[i-1] || '').trim();
+  saveStore(); renderAll(); alert('単語を読み込みました。');
+}
+function renderSettings(){
+  document.getElementById('page-settings').innerHTML = `
+    <div class="grid grid-2">
+      <div class="card">
+        <h2>単語の一括入力</h2>
+        <label>1行に1語ずつ貼り付け</label>
+        <textarea id="bulkWords" placeholder="1行目=1番、2行目=2番…"></textarea>
+        <div class="row" style="margin-top:10px"><button onclick="importWords()">単語を読み込み</button></div>
+      </div>
+      <div class="card">
+        <h2>バックアップ</h2>
+        <div class="row"><button onclick="exportJson()">JSON保存</button><label style="margin:0"><input type="file" accept="application/json" onchange="importJson(event)"></label></div>
+        <div class="note" style="margin-top:12px">別端末と自動同期はしません。バックアップして別端末で読み込む使い方ができます。</div>
+      </div>
+    </div>
+  `;
+}
+
+// events
+window.switchPage=switchPage; window.register=register; window.login=login; window.logout=logout;
+window.updateWord=updateWord; window.resetWord=resetWord; window.bulkMarkTodayRange=bulkMarkTodayRange; window.markTodayRangeSeenOnly=markTodayRangeSeenOnly;
+window.updateTodayPlanField=updateTodayPlanField; window.startTodayRange=startTodayRange; window.setNextDefaultRange=setNextDefaultRange;
+window.renderWords=renderWords; window.historyMode=historyMode; window.exportJson=exportJson; window.importJson=importJson; window.importWords=importWords;
+
+document.getElementById('registerBtn').addEventListener('click', register);
+document.getElementById('loginBtn').addEventListener('click', login);
+document.getElementById('logoutBtn').addEventListener('click', logout);
+document.getElementById('authPassword').addEventListener('keydown', e=>{ if(e.key==='Enter') login(); });
+
+if(store.session && store.users[store.session]){ currentUser=store.session; startApp(); }
+</script>
+</body>
+</html>
